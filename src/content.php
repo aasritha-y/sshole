@@ -155,5 +155,5 @@ return [
         '/etc/shadow' => 'The protected file that stores each account\'s password hash, or * for accounts locked to passwords.',
     ],
 
-    'footer' => 'An independent plain-language explainer based on the public write-up at sshhole.com. Not affiliated with its authors. Claims about the vulnerability are as reported and not independently verified. Test only on systems you own or are authorised to test.',
+    'footer' => 'ssh hole',
 ];
