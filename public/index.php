@@ -1,96 +1,132 @@
 <?php
 $c = require __DIR__ . '/../src/content.php';
 $e = static function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); };
+$p = static function ($html) { return str_replace('<p>', '<p class="dd-p">', $html); };
+$edge = ['report-entry-blue', 'report-entry-yellow', 'report-entry-red'];
+$tags = ['blue-tag', 'yellow-tag', 'red-tag'];
+$stageClasses = ['stage-attacker', 'stage-crash', 'stage-engine', 'stage-engine', 'stage-rce'];
+$card = static function ($i) use ($edge) { return 'report-entry walkthrough ' . $edge[$i % count($edge)]; };
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= $e($c['title']) ?></title>
-<meta name="description" content="<?= $e($c['subtitle']) ?>">
-<link rel="stylesheet" href="assets/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= $e($c['title']) ?></title>
+    <meta name="description" content="<?= $e($c['subtitle']) ?>">
+    <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-<div class="wrap">
+    <header class="site-header">
+        <div class="logo">
+            <span class="logo-icon">&#9672;</span>
+            <span>sshole &middot; Explained</span>
+        </div>
+        <nav class="nav">
+            <a href="#top" class="active">Overview</a>
+            <a href="#affected">Affected</a>
+            <a href="#fix">Fix</a>
+            <a href="#glossary">Glossary</a>
+        </nav>
+    </header>
 
-  <header>
-    <h1><span class="star">*</span>sshole explained</h1>
-    <p class="sub"><?= $e($c['subtitle']) ?></p>
-  </header>
+    <main class="container" id="top">
+<section class="hero">
+  <h1>*sshole</h1>
+  <p class="subtitle"><?= $e($c['subtitle']) ?></p>
+</section>
 
-  <nav class="toc" aria-label="Contents">
-    <p class="toc-title">On this page</p>
-    <ol>
-      <?php foreach ($c['sections'] as $s): ?>
-        <li><a href="#<?= $e($s['id']) ?>"><?= $e($s['heading']) ?></a></li>
-      <?php endforeach; ?>
-      <li><a href="#timeline"><?= $e($c['timeline_heading']) ?></a></li>
-      <li><a href="#glossary">Glossary</a></li>
-    </ol>
-  </nav>
+<div class="report-list">
 
-  <?php foreach ($c['sections'] as $s): ?>
-    <section id="<?= $e($s['id']) ?>" class="<?= $s['type'] === 'callout' ? 'callout' : '' ?>">
+<?php $part = 0; foreach ($c['sections'] as $i => $s): ?>
+  <?php if ($s['type'] === 'callout'): ?>
+  <div id="<?= $e($s['id']) ?>" class="report-entry walkthrough report-entry-red" style="flex-direction: column;">
+    <div class="card-tag" style="background: var(--muted); color: #fff; margin-bottom: 16px;">OPENSSH &middot; MUSL &middot; NO PAM</div>
+    <div class="dd-section">
+      <h2><?= $e($s['heading']) ?></h2>
+      <?= $p($s['html']) ?>
+    </div>
+  </div>
+
+  <?php else: $part++; ?>
+  <div id="<?= $e($s['id']) ?>" class="<?= $e($card($part)) ?>" style="flex-direction: column;">
+    <div class="card-tag <?= $e($tags[$part % count($tags)]) ?>">PART <?= $part ?></div>
+    <div class="dd-section">
       <h2><?= $e($s['heading']) ?></h2>
 
-      <?php if ($s['type'] === 'prose' || $s['type'] === 'callout'): ?>
-        <?= $s['html'] ?>
+      <?php if ($s['type'] === 'prose'): ?>
+        <?= $p($s['html']) ?>
 
       <?php elseif ($s['type'] === 'chain'): ?>
-        <ol class="chain">
-          <?php foreach ($s['items'] as $step): ?><li><?= $step ?></li><?php endforeach; ?>
-        </ol>
+        <div class="stage-track">
+          <?php foreach ($s['items'] as $n => $step): ?>
+            <div class="stage <?= $e($stageClasses[$n % count($stageClasses)]) ?>">
+              <span class="stage-num"><?= $n + 1 ?></span>
+              <p><?= $step ?></p>
+            </div>
+          <?php endforeach; ?>
+        </div>
 
       <?php elseif ($s['type'] === 'list'): ?>
-        <ul class="steps">
+        <ul class="dd-list">
           <?php foreach ($s['items'] as $item): ?><li><?= $item ?></li><?php endforeach; ?>
         </ul>
 
       <?php elseif ($s['type'] === 'checklist'): ?>
-        <p><?= $s['intro'] ?></p>
-        <ul class="check bad">
+        <p class="dd-p"><?= $s['intro'] ?></p>
+        <ul class="dd-list">
           <?php foreach ($s['bad'] as $item): ?><li><?= $e($item) ?></li><?php endforeach; ?>
         </ul>
-        <p><?= $s['outro'] ?></p>
+        <p class="dd-p"><?= $s['outro'] ?></p>
         <h3><?= $e($s['good_heading']) ?></h3>
-        <ul class="check good">
+        <ul class="dd-list">
           <?php foreach ($s['good'] as $item): ?><li><?= $e($item) ?></li><?php endforeach; ?>
         </ul>
       <?php endif; ?>
-    </section>
-  <?php endforeach; ?>
+    </div>
+  </div>
+  <?php endif; ?>
+<?php endforeach; ?>
 
-  <section id="timeline">
-    <h2><?= $e($c['timeline_heading']) ?></h2>
-    <p><?= $e($c['timeline_intro']) ?></p>
-    <?php foreach ($c['timeline'] as $item): ?>
-      <div class="entry">
-        <div class="year"><?= $e($item['year']) ?></div>
-        <h3><?= $e($item['heading']) ?></h3>
-        <p><?= $item['body'] ?></p>
-        <div class="note">
-          <?= $e($item['note']) ?>:
-          <a href="<?= $e($item['link']) ?>" rel="noopener noreferrer">source</a>
-        </div>
+  <div id="timeline" class="report-entry walkthrough report-entry-blue" style="flex-direction: column;">
+    <div class="card-tag blue-tag">TIMELINE</div>
+    <div class="dd-section">
+      <h2><?= $e($c['timeline_heading']) ?></h2>
+      <p class="dd-p"><?= $e($c['timeline_intro']) ?></p>
+      <div class="dd-diagram">
+        <table class="ledger">
+          <thead><tr><th>When</th><th>What happened</th><th>Source</th></tr></thead>
+          <tbody>
+            <?php foreach ($c['timeline'] as $item): ?>
+              <tr>
+                <td class="mono"><?= $e($item['year']) ?></td>
+                <td><strong><?= $e($item['heading']) ?>.</strong> <?= $item['body'] ?></td>
+                <td><a href="<?= $e($item['link']) ?>" rel="noopener noreferrer"><?= $e($item['note']) ?></a></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
       </div>
-    <?php endforeach; ?>
-  </section>
+    </div>
+  </div>
 
-  <section id="glossary">
-    <h2>Glossary</h2>
-    <dl class="glossary">
-      <?php foreach ($c['glossary'] as $term => $def): ?>
-        <dt><?= $e($term) ?></dt>
-        <dd><?= $e($def) ?></dd>
-      <?php endforeach; ?>
-    </dl>
-  </section>
-
-  <footer>
-    <p><?= $e($c['footer']) ?></p>
-  </footer>
+  <div id="glossary" class="report-entry walkthrough report-entry-yellow" style="flex-direction: column;">
+    <div class="card-tag yellow-tag">GLOSSARY</div>
+    <div class="dd-primer" style="margin-top: 8px;">
+      <dl>
+        <?php foreach ($c['glossary'] as $term => $def): ?>
+          <dt><?= $e($term) ?></dt>
+          <dd><?= $e($def) ?></dd>
+        <?php endforeach; ?>
+      </dl>
+    </div>
+  </div>
 
 </div>
+    </main>
+
+    <footer class="site-footer">
+        <p><?= $e($c['footer']) ?></p>
+    </footer>
 </body>
 </html>
