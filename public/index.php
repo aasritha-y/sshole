@@ -36,10 +36,6 @@ $stageClasses = ['stage-attacker', 'stage-crash', 'stage-engine', 'stage-engine'
 
 <div class="report-list">
   <div class="report-entry report-entry-red walkthrough" style="flex-direction: column;">
-    <div class="unverified-banner">
-      <span class="ub-mark">!</span>
-      <span><strong>Unverified.</strong> This explains a vulnerability reported in the public write-up at sshhole.com. The background is well established; the bug itself and the fix version have not been independently confirmed here.</span>
-    </div>
 
     <?php foreach ($c['sections'] as $i => $s): ?>
       <div id="<?= $e($s['id']) ?>"></div>
