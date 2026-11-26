@@ -1,5 +1,4 @@
 <?php
-// Template only. Content is in ../src/content.php.
 $c = require __DIR__ . '/../src/content.php';
 $e = static function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); };
 ?>
@@ -9,67 +8,87 @@ $e = static function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UT
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= $e($c['title']) ?></title>
+<meta name="description" content="<?= $e($c['subtitle']) ?>">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 <div class="wrap">
 
   <header>
-    <h1><span class="star">*</span>sshole</h1>
+    <h1><span class="star">*</span>sshole explained</h1>
     <p class="sub"><?= $e($c['subtitle']) ?></p>
   </header>
 
-  <p><?= $c['intro'] ?></p>
+  <nav class="toc" aria-label="Contents">
+    <p class="toc-title">On this page</p>
+    <ol>
+      <?php foreach ($c['sections'] as $s): ?>
+        <li><a href="#<?= $e($s['id']) ?>"><?= $e($s['heading']) ?></a></li>
+      <?php endforeach; ?>
+      <li><a href="#timeline"><?= $e($c['timeline_heading']) ?></a></li>
+      <li><a href="#glossary">Glossary</a></li>
+    </ol>
+  </nav>
 
-  <h2>the sequence</h2>
-  <?php foreach ($c['timeline'] as $item): ?>
-    <div class="entry">
-      <div class="year"><?= $e($item['year']) ?></div>
-      <h3><?= $item['heading'] ?></h3>
-      <p><?= $item['body'] ?></p>
-      <?php if ($item['note']): ?>
-        <div class="note">
-          <?= $e($item['note']) ?>
-          <?php if ($item['link']): ?>
-            : <a href="<?= $e($item['link']) ?>" rel="noopener noreferrer">source</a>
-          <?php endif; ?>
-        </div>
+  <?php foreach ($c['sections'] as $s): ?>
+    <section id="<?= $e($s['id']) ?>" class="<?= $s['type'] === 'callout' ? 'callout' : '' ?>">
+      <h2><?= $e($s['heading']) ?></h2>
+
+      <?php if ($s['type'] === 'prose' || $s['type'] === 'callout'): ?>
+        <?= $s['html'] ?>
+
+      <?php elseif ($s['type'] === 'chain'): ?>
+        <ol class="chain">
+          <?php foreach ($s['items'] as $step): ?><li><?= $step ?></li><?php endforeach; ?>
+        </ol>
+
+      <?php elseif ($s['type'] === 'list'): ?>
+        <ul class="steps">
+          <?php foreach ($s['items'] as $item): ?><li><?= $item ?></li><?php endforeach; ?>
+        </ul>
+
+      <?php elseif ($s['type'] === 'checklist'): ?>
+        <p><?= $s['intro'] ?></p>
+        <ul class="check bad">
+          <?php foreach ($s['bad'] as $item): ?><li><?= $e($item) ?></li><?php endforeach; ?>
+        </ul>
+        <p><?= $s['outro'] ?></p>
+        <h3><?= $e($s['good_heading']) ?></h3>
+        <ul class="check good">
+          <?php foreach ($s['good'] as $item): ?><li><?= $e($item) ?></li><?php endforeach; ?>
+        </ul>
       <?php endif; ?>
-    </div>
+    </section>
   <?php endforeach; ?>
 
-  <h2>the chain, step by step</h2>
-  <ol class="chain">
-    <?php foreach ($c['chain'] as $step): ?>
-      <li><?= $step ?></li>
+  <section id="timeline">
+    <h2><?= $e($c['timeline_heading']) ?></h2>
+    <p><?= $e($c['timeline_intro']) ?></p>
+    <?php foreach ($c['timeline'] as $item): ?>
+      <div class="entry">
+        <div class="year"><?= $e($item['year']) ?></div>
+        <h3><?= $e($item['heading']) ?></h3>
+        <p><?= $item['body'] ?></p>
+        <div class="note">
+          <?= $e($item['note']) ?>:
+          <a href="<?= $e($item['link']) ?>" rel="noopener noreferrer">source</a>
+        </div>
+      </div>
     <?php endforeach; ?>
-  </ol>
+  </section>
 
-  <h2>are you affected?</h2>
-  <ul class="check bad">
-    <?php foreach ($c['affected'] as $item): ?>
-      <li><?= $e($item) ?></li>
-    <?php endforeach; ?>
-  </ul>
-  <p><?= $c['affected_note'] ?></p>
-
-  <h2>not affected</h2>
-  <ul class="check good">
-    <?php foreach ($c['not_affected'] as $item): ?>
-      <li><?= $e($item) ?></li>
-    <?php endforeach; ?>
-  </ul>
-
-  <h2>what now</h2>
-  <ul>
-    <?php foreach ($c['remediation'] as $item): ?>
-      <li><?= $item ?></li>
-    <?php endforeach; ?>
-  </ul>
+  <section id="glossary">
+    <h2>Glossary</h2>
+    <dl class="glossary">
+      <?php foreach ($c['glossary'] as $term => $def): ?>
+        <dt><?= $e($term) ?></dt>
+        <dd><?= $e($def) ?></dd>
+      <?php endforeach; ?>
+    </dl>
+  </section>
 
   <footer>
     <p><?= $e($c['footer']) ?></p>
-    <span class="bye"><?= $e($c['subtitle']) ?></span>
   </footer>
 
 </div>
