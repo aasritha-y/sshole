@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sshole: explained</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><span class="star">*</span>sshole</h1>
+    <p class="sub">did you get hacked? check.</p>
+  </header>
+
+  <p>OpenSSH on musl Linux (Alpine, OpenWrt, Buildroot, Yocto, and many Docker images) is described as having a problem since 2016. Accounts that should never take a password (root, key-only deploy users, LDAP users, the default user on Alpine cloud images) are said to accept any password longer than <strong>256 characters</strong>.</p>
+
+  <h2>the sequence</h2>
+      <div class="entry">
+      <div class="year">1980</div>
+      <h3>the first star</h3>
+      <p>In old Unix the password hash sat in <code>/etc/passwd</code>, next to the username, in a world-readable file. A single <code>*</code> was put there for the <code>daemon</code> account, which nobody should log in as. A <code>*</code> is not a hash, so no password can match it. Unix still does this today.</p>
+              <div class="note">
+          3BSD, /etc/passwd, 1980                      : <a href="https://github.com/dspinellis/unix-history-repo/blob/BSD-3/etc/passwd" rel="noopener noreferrer">source</a>
+                  </div>
+          </div>
+      <div class="entry">
+      <div class="year">1990s</div>
+      <h3>how sshd checks your password</h3>
+      <p>Today the hash lives in <code>/etc/shadow</code> and looks like <code>$6$abc$k2P9...</code>. The <code>$6$</code> means SHA-512, <code>abc</code> is the salt, and the rest is the hash. You type a password, <code>sshd</code> hashes it with the same salt, and checks whether the result is identical. If the field is just <code>*</code>, there is nothing to match, so no password gets you in.</p>
+          </div>
+      <div class="entry">
+      <div class="year">1990s</div>
+      <h3>the fine print</h3>
+      <p>If <code>crypt()</code> cannot do its job, it returns <code>NULL</code>. For example, the salt may ask for an algorithm the system does not have. Many programs never check for <code>NULL</code>. They compare whatever <code>crypt()</code> returns with the stored field and crash.</p>
+              <div class="note">
+          The Single UNIX Specification, crypt(), 1997                      : <a href="https://pubs.opengroup.org/onlinepubs/7908799/xsh/crypt.html" rel="noopener noreferrer">source</a>
+                  </div>
+          </div>
+      <div class="entry">
+      <div class="year">2012</div>
+      <h3>crypt stops saying NULL</h3>
+      <p>musl (the C library under Alpine) decides <code>crypt()</code> will no longer return <code>NULL</code>. On failure it returns a single character that can never match a real hash, so programs see a wrong password instead of crashing. The character chosen was <strong>*</strong>, the same character used to mark locked accounts.</p>
+              <div class="note">
+          musl, b3c4cc12, aug 2012                      : <a href="https://git.musl-libc.org/cgit/musl/commit/?id=b3c4cc12" rel="noopener noreferrer">source</a>
+                  </div>
+          </div>
+      <div class="entry">
+      <div class="year">2012</div>
+      <h3>three weeks later</h3>
+      <p>musl adds SHA-512 crypt. It gets slower as the password gets longer, so a huge password could keep a server busy. musl caps input at <strong>256 bytes</strong> and refuses anything longer. Past 256 bytes <code>crypt()</code> fails, and when it fails it returns <code>*</code>.</p>
+              <div class="note">
+          musl, 88bf5a8a, aug 29 2012                      : <a href="https://git.musl-libc.org/cgit/musl/commit/?id=88bf5a8a" rel="noopener noreferrer">source</a>
+                  </div>
+          </div>
+      <div class="entry">
+      <div class="year">2016</div>
+      <h3>sshd borrows a salt</h3>
+      <p>CVE-2016-6210. Asking <code>sshd</code> about a user that does not exist returned instantly, because there was nothing to hash. Real users took a few milliseconds longer, so timing revealed who exists. The fix: when there is no real hash, <code>sshd</code> hashes your password against another account's salt anyway, to spend the same time.</p>
+              <div class="note">
+          openssh-commits, jul 2016                      : <a href="https://lists.mindrot.org/pipermail/openssh-commits/2016-July/005428.html" rel="noopener noreferrer">source</a>
+                  </div>
+          </div>
+      <div class="entry">
+      <div class="year">2019 to 2022</div>
+      <h3>the fix for the fix</h3>
+      <p>2019: Alpine Docker images had no root password at all (CVE-2019-5021). Alpine locked root with <code>!</code>, but without PAM that also blocks SSH keys, and cloud images log in with keys. 2022: Alpine 3.16 switched root to <code>*</code>. Still locked, and keys work again.</p>
+              <div class="note">
+          alpine aports, fbe926af, shipped in 3.16, 2022                      : <a href="https://gitlab.alpinelinux.org/alpine/aports/-/commit/fbe926af.patch" rel="noopener noreferrer">source</a>
+                  </div>
+          </div>
+      <div class="entry">
+      <div class="year">2016 to 2026</div>
+      <h3>ten quiet years</h3>
+      <p>Why did nobody notice? A fresh box with no passwords set is not affected. A <code>*</code> in shadow needs a wrong try first. OpenSSH is tested on OpenBSD and glibc, musl does not test sshd, and most distros go through PAM, which never calls <code>crypt()</code> for a <code>*</code>. As far as anyone knows, nobody noticed.</p>
+              <div class="note">
+          libc-alpha, debian #714219, 2013                      : <a href="https://sourceware.org/legacy-ml/libc-alpha/2013-07/msg00046.html" rel="noopener noreferrer">source</a>
+                  </div>
+          </div>
+      <div class="entry">
+      <div class="year">nov 2026</div>
+      <h3>how it was found</h3>
+      <p>The author built <code>sshd</code> many ways (glibc, musl, PAM, no PAM, shadow, no shadow) and sent about 17,600 unusual logins at each. Every build agreed on every login except musl without PAM.</p>
+              <div class="note">
+          summary of the public write-up; not independently verified                  </div>
+          </div>
+  
+  <h2>the chain, step by step</h2>
+  <ol class="chain">
+          <li>Locked account stores <code>*</code> in <code>/etc/shadow</code>.</li>
+          <li>You send a password longer than 256 bytes.</li>
+          <li>musl's <code>crypt()</code> fails and returns <code>*</code>.</li>
+          <li>sshd compares that <code>*</code> to the stored <code>*</code>.</li>
+          <li>They match, so login is granted to a locked account.</li>
+      </ol>
+
+  <h2>are you affected?</h2>
+  <ul class="check bad">
+          <li>sshd running on musl (Alpine, OpenWrt, Buildroot, Yocto)</li>
+          <li>not using PAM (Alpine&#039;s openssh-server does not by default, or UsePAM no)</li>
+          <li>password logins still on (the default)</li>
+          <li>an account with just * as its password (key-only users, LDAP users, root on Alpine)</li>
+          <li>some other account with a real password</li>
+      </ul>
+  <p>If all of the above are true, a <code>*</code> account is said to accept any password between 257 and 1024 characters. On Alpine's official AWS and Azure images that is the default <code>alpine</code> user, which has passwordless <code>doas</code>, so it is effectively root.</p>
+
+  <h2>not affected</h2>
+  <ul class="check good">
+          <li>Debian, Ubuntu, Fedora, anything with glibc</li>
+          <li>any distro going through PAM</li>
+          <li>Dropbear</li>
+          <li>OpenBSD</li>
+      </ul>
+
+  <h2>what now</h2>
+  <ul>
+          <li>Upgrade OpenSSH to 10.6p2 or later (version as stated by the write-up; confirm against the OpenSSH and Alpine advisories).</li>
+          <li>Restart sshd after upgrading (<code>rc-service sshd restart</code> on Alpine).</li>
+          <li>If you cannot upgrade: set <code>PasswordAuthentication no</code> and restart sshd.</li>
+          <li>Check logs for <code>Accepted password for</code> on accounts that should be locked.</li>
+      </ul>
+
+  <footer>
+    <p>Reference summary of the public write-up at sshhole.com. The claims have not been independently verified: confirm against the musl, OpenSSH and Alpine sources before acting. Test only on systems you own or have written authorization to test.</p>
+    <span class="bye">did you get hacked? check.</span>
+  </footer>
+
+</div>
+</body>
+</html>
