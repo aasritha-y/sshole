@@ -1047,3 +1047,12 @@ input:focus { border-color: var(--accent); box-shadow: 3px 3px 0 var(--accent); 
 .walkthrough ol.plain { margin: 0 0 18px 22px; font-family: "Space Grotesk", sans-serif; font-size: 0.95rem; line-height: 1.8; }
 .walkthrough ol.plain li { margin-bottom: 8px; }
 .walkthrough ol.plain code { background: #f4f7fb; border: 2px solid var(--border); padding: 1px 5px; font-family: ui-monospace, monospace; font-size: 0.85rem; color: #334; }
+.report-list:has(.walkthrough) { gap: 28px; }
+.walkthrough { padding: 28px 36px; }
+.walkthrough .card-tag { margin: 0 0 12px; }
+.walkthrough .dd-section h2 { margin: 4px 0 16px; }
+.walkthrough .dd-section h3 { font-family: "Space Grotesk", sans-serif; font-size: 1.05rem; margin: 20px 0 10px; }
+.walkthrough .dd-section .dd-p:last-child, .walkthrough .dd-list:last-child { margin-bottom: 0; }
+.walkthrough .ledger caption { display: none; }
+.walkthrough .stage-track { margin-top: 8px; }
+@media (max-width: 640px) { .walkthrough { padding: 20px 18px; } }
